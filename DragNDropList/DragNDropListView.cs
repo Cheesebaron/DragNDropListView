@@ -1,3 +1,21 @@
+/*
+ * Copyright 2013 Tomasz Cielecki @Cheesebaron
+ * Copyright 2012 Terlici Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System;
 using Android.Content;
 using Android.Graphics;
 using Android.Runtime;
@@ -7,8 +25,31 @@ using Android.Widget;
 
 namespace DragNDropListView
 {
+    public class DragNDropListViewDragEventArgs: EventArgs
+    {
+        public DragNDropListView ListView { get; set; }
+        public View View { get; set; }
+        public int Position { get; set; }
+        public long Id { get; set; }
+    }
+
+    public class DragNDropListViewDropEventArgs : EventArgs
+    {
+        public DragNDropListView ListView { get; set; }
+        public View View { get; set; }
+        public int StartPosition { get; set; }
+        public int EndPosition { get; set; }
+        public long Id { get; set; }
+    }
+
+    public delegate void DragNDropListViewDragEventHandler(DragNDropListViewDragEventArgs args);
+    public delegate void DragNDropListViewDropEventHandler(DragNDropListViewDropEventArgs args);
+
     public class DragNDropListView : ListView
     {
+        public event DragNDropListViewDragEventHandler ItemDrag;
+        public event DragNDropListViewDropEventHandler ItemDrop;
+
         public interface IOnItemDragNDropListener
         {
             void OnItemDrag(DragNDropListView parent, View view, int position, long id);
@@ -128,6 +169,9 @@ namespace DragNDropListView
 
             ((IDragNDropAdapter)Adapter).OnItemDrag(this, item, _startPosition, id);
 
+            if (null != ItemDrag)
+                ItemDrag(new DragNDropListViewDragEventArgs{Id = id, ListView = this, View = item, Position = _startPosition});
+
             item.DrawingCacheEnabled = true;
 
             using (var bitmap = Bitmap.CreateBitmap(item.DrawingCache))
@@ -174,6 +218,9 @@ namespace DragNDropListView
                     _dragNDropListener.OnItemDrop(this, item, _startPosition, endPosition, id);
 
                 ((IDragNDropAdapter)Adapter).OnItemDrop(this, item, _startPosition, endPosition, id);
+
+                if (null != ItemDrop)
+                    ItemDrop(new DragNDropListViewDropEventArgs{ Id = id, ListView = this, View = item, StartPosition = _startPosition, EndPosition = endPosition });
             }
 
             DragView.Visibility = ViewStates.Gone;
